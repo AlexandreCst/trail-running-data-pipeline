@@ -1,19 +1,31 @@
 """API ingestion script"""
 
-import openmeteo_requests, numpy
+import requests, json
 
-openmeteo = openmeteo_requests.Client()
+from pathlib import Path
 
-url = "https://archive-api.open-meteo.com/v1/archive" # API url to query
-# Params to get data of Lyon (french city)
-params = {
+# Build the URL and define the params of the request
+historical_url = "https://archive-api.open-meteo.com/v1/archive"
+historical_params = {
     "latitude": 45.7485,
     "longitude": 4.8467,
-    "hourly": ["temperature_2m", "relative_humidity_2m", "cloud_cover", "precipitation_probability"],
-    "current": ["temperature_2m", "relative_humidity_2m", "cloud_cover", "precipitation_probability"]
+    "start_date": "2026-03-29",
+    "end_date": "2026-03-30",
+    "hourly": ["temperature_2m", "relative_humidity_2m", "cloud_cover", "rain"],
 }
 
-responses = openmeteo.weather_api(url, params=params)
-response = responses[0]
-hourly = response.Hourly()
-print(hourly.Variables(0).ValuesAsNumpy())
+# Request API
+response = requests.get(historical_url, params=historical_params)
+
+if response.status_code == 200:
+    response_data = response.json()
+
+    path = Path("trail-running-data-pipeline/data/raw/historical_data.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(mode="w") as historical_json:
+        json.dump(response_data, historical_json, indent=4)
+
+elif response.status_code in [404, 500]:
+    print("Oops, bad request!")
+
+
