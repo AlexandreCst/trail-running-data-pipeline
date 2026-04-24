@@ -3,6 +3,7 @@
 import requests, json
 
 from pathlib import Path
+from requests.exceptions import RequestException
 
 # Build the URL and define the params of the request
 historical_url = "https://archive-api.open-meteo.com/v1/archive"
@@ -15,17 +16,21 @@ historical_params = {
 }
 
 # Request API
-response = requests.get(historical_url, params=historical_params)
+try:
+    response = requests.get(historical_url, params=historical_params)
+    response_data = response.json() # Convert response to JSON format
 
-if response.status_code == 200:
-    response_data = response.json()
-
-    path = Path("trail-running-data-pipeline/data/raw/historical_data.json")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open(mode="w") as historical_json:
-        json.dump(response_data, historical_json, indent=4)
-
-elif response.status_code in [404, 500]:
-    print("Oops, bad request!")
+# Catch if an error occured when calling API
+except RequestException: 
+    raise
 
 
+# Define the relative path compared with the file where the script are located
+path = Path(__file__).parent.parent.joinpath("data", "raw", "historical_data.json")
+
+# Create the folder if it doesn't exist
+path.parent.mkdir(parents=True, exist_ok=True)
+
+# Save data in JSON file
+with path.open(mode="w") as historical_json:
+    json.dump(response_data, historical_json, indent=4)
