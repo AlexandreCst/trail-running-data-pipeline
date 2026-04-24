@@ -1,6 +1,7 @@
 """API ingestion script"""
 
-import requests, json
+import requests, json, pandas as pd
+
 
 from pathlib import Path
 from requests.exceptions import RequestException
@@ -11,7 +12,7 @@ historical_params = {
     "latitude": 45.7485,
     "longitude": 4.8467,
     "start_date": "2026-03-29",
-    "end_date": "2026-03-30",
+    "end_date": "2026-03-29",
     "hourly": ["temperature_2m", "relative_humidity_2m", "cloud_cover", "rain"],
 }
 
@@ -34,3 +35,13 @@ path.parent.mkdir(parents=True, exist_ok=True)
 # Save data in JSON file
 with path.open(mode="w") as historical_json:
     json.dump(response_data, historical_json, indent=4)
+
+# Convert time values (str) in datetime64[us] format
+response_data["hourly"]["time"] = pd.to_datetime(response_data["hourly"]["time"], format="%Y-%m-%dT%H:%M")
+
+# Define DataFrame based on hourly key in response_data dict
+df = pd.DataFrame(response_data["hourly"])
+
+# Define path and generate parquet file
+parquet_path = Path(__file__).parent.parent.joinpath("data", "raw", "historical_data.parquet")
+parquet_file = df.to_parquet(parquet_path, engine="pyarrow")
