@@ -1,4 +1,4 @@
-"""Ingestion module"""
+"""Data ingestion module"""
 
 import requests, json
 
@@ -24,7 +24,7 @@ def openmeteo_api_call():
     # API request
     try:
         response = requests.get(url, params=params)
-        response.raise_for_status() # Check if HTTP error has occured
+        response.raise_for_status() # Check if HTTP error occured
         data = response.json() # Convert response to JSON format
         return data
     # Catch if an error occured when calling API
