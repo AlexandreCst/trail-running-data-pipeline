@@ -1,9 +1,12 @@
 """Data ingestion module"""
 
-import requests, json
+import requests, json, logging
 
 from pathlib import Path
 from requests.exceptions import RequestException
+
+# Define trail_pipeline.ingestion logger
+logger = logging.getLogger(__name__)
 
 def openmeteo_api_call():
     """Fonction to request openmeteo API and get the historical weather in Lyon
@@ -26,9 +29,11 @@ def openmeteo_api_call():
         response = requests.get(url, params=params)
         response.raise_for_status() # Check if HTTP error occured
         data = response.json() # Convert response to JSON format
+        logger.info("Data retrieved")
         return data
     # Catch if an error occured when calling API
-    except RequestException: 
+    except RequestException:
+        logger.error("No data available", exc_info=True) 
         raise
 
 
@@ -42,5 +47,11 @@ def write_json_weather(data):
     path.parent.mkdir(parents=True, exist_ok=True)
     
     # Save data about historical weather in JSON file
-    with path.open(mode="w") as json_file:
-        json.dump(data, json_file, indent=4)
+    try:
+        with path.open(mode="w") as json_file:
+            json.dump(data, json_file, indent=4)
+            logger.info("JSON file created")
+    
+    except OSError:
+        logger.error("Error, no JSON file created", exc_info=True)
+        raise
